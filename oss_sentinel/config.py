@@ -25,6 +25,9 @@ def env_int(name: str, default: int) -> int:
 @dataclass(frozen=True)
 class Settings:
     github_token: str | None
+    github_app_id: str | None
+    github_app_private_key_path: Path | None
+    github_app_installation_id: str | None
     webhook_secret: str | None
     dry_run: bool
     security_cmd: str | None
@@ -44,6 +47,11 @@ class Settings:
     def from_env(cls) -> "Settings":
         return cls(
             github_token=os.getenv("OSS_SENTINEL_GITHUB_TOKEN"),
+            github_app_id=os.getenv("OSS_SENTINEL_GITHUB_APP_ID"),
+            github_app_private_key_path=(
+                Path(raw) if (raw := os.getenv("OSS_SENTINEL_GITHUB_APP_PRIVATE_KEY_PATH")) else None
+            ),
+            github_app_installation_id=os.getenv("OSS_SENTINEL_GITHUB_APP_INSTALLATION_ID"),
             webhook_secret=os.getenv("OSS_SENTINEL_WEBHOOK_SECRET"),
             dry_run=env_bool("OSS_SENTINEL_DRY_RUN", True),
             security_cmd=os.getenv("OSS_SENTINEL_SECURITY_CMD"),

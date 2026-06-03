@@ -36,6 +36,16 @@ export OSS_SENTINEL_WEBHOOK_SECRET=...
 export OSS_SENTINEL_DRY_RUN=false
 ```
 
+For production, prefer GitHub App installation auth over a personal token:
+
+```bash
+export OSS_SENTINEL_GITHUB_APP_ID=123456
+export OSS_SENTINEL_GITHUB_APP_PRIVATE_KEY_PATH=/srv/oss-sentinel/github-app.pem
+export OSS_SENTINEL_GITHUB_APP_INSTALLATION_ID=987654
+```
+
+`OSS_SENTINEL_GITHUB_TOKEN` takes precedence when it is set. GitHub App JWT signing uses the system `openssl` command.
+
 Then configure a GitHub webhook:
 
 - Payload URL: `https://your-host.example/webhook`

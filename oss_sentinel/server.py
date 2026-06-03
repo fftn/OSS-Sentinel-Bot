@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import json
 
+from .auth import resolve_github_token
 from .config import Settings
 from .github import GitHubClient
 from .models import PullRequestFile
@@ -144,7 +145,7 @@ def handle_pull_request(payload: dict[str, Any], settings: Settings, client: Git
 
 
 def handle_event(event: str, payload: dict[str, Any], settings: Settings) -> dict[str, Any]:
-    client = GitHubClient(settings.github_token, settings.github_api_url, settings.dry_run)
+    client = GitHubClient(resolve_github_token(settings), settings.github_api_url, settings.dry_run)
     if event == "pull_request":
         return handle_pull_request(payload, settings, client)
     return {"status": "ignored", "reason": f"unsupported event {event}"}
