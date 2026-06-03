@@ -1,0 +1,13 @@
+[project]
+name = "oss-sentinel-bot"
+version = "0.1.0"
+description = "A lightweight PR security sentinel for open source maintainers."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+oss-sentinel = "oss_sentinel.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
