@@ -8,7 +8,7 @@ import re
 import shlex
 import subprocess
 
-from .models import Finding, PullRequestFile, SEVERITY_RANK, ScanReport
+from .models import Finding, PullRequestFile, SEVERITY_RANK, ScanReport, validate_scan_report_payload
 from .threat_model import SKIP_DIRS, matches_any
 
 
@@ -272,6 +272,9 @@ def scan_changed_files(files: list[PullRequestFile], threat_model: dict[str, Any
 
 
 def report_from_external(payload: dict[str, Any]) -> ScanReport:
+    errors = validate_scan_report_payload(payload)
+    if errors:
+        raise ValueError("; ".join(errors))
     return ScanReport.from_dict(payload)
 
 
@@ -326,7 +329,8 @@ def run_external_security_cmd(
         return fallback_report
 
     try:
-        report = report_from_external(json.loads(completed.stdout))
+        payload = json.loads(completed.stdout)
+        report = report_from_external(payload)
     except json.JSONDecodeError as exc:
         fallback_report.findings.append(
             Finding(
@@ -334,6 +338,18 @@ def run_external_security_cmd(
                 category="scanner-error",
                 path="",
                 message=f"External security scanner returned invalid JSON: {exc}",
+                recommendation="Fix the scanner adapter so it emits the documented ScanReport schema.",
+                evidence=completed.stdout.strip()[:180],
+            )
+        )
+        return fallback_report
+    except ValueError as exc:
+        fallback_report.findings.append(
+            Finding(
+                severity="HIGH",
+                category="scanner-error",
+                path="",
+                message=f"External security scanner returned an invalid report: {exc}",
                 recommendation="Fix the scanner adapter so it emits the documented ScanReport schema.",
                 evidence=completed.stdout.strip()[:180],
             )

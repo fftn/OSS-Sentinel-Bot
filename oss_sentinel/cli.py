@@ -4,12 +4,13 @@ from dataclasses import replace
 from pathlib import Path
 import argparse
 import json
+import shlex
 import sys
 
 from .config import Settings
-from .models import SEVERITY_RANK
+from .models import SEVERITY_RANK, validate_scan_report_payload
 from .repo_config import load_repository_config, merge_config_into_threat_model
-from .scanner import scan_repository_path
+from .scanner import run_external_security_cmd, scan_repository_path
 from .server import handle_event, run_server
 from .threat_model import generate_threat_model, load_threat_model, write_threat_model
 
@@ -45,6 +46,48 @@ def cmd_simulate_pr(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_validate_scanner(args: argparse.Namespace) -> int:
+    if not args.command:
+        print("ERROR: scanner command is required")
+        return 2
+    fixture = json.loads(Path(args.fixture).read_text(encoding="utf-8"))
+    files = fixture.get("sentinel", {}).get("files", [])
+    payload = {
+        "schema_version": 1,
+        "context": {
+            "event": "scanner-contract",
+            "repository": fixture.get("repository", {}).get("full_name", "owner/repo"),
+            "pull_number": fixture.get("number", 0),
+        },
+        "threat_model": load_threat_model(Path(args.threat_model)),
+        "files": files,
+        "builtin_report": {
+            "schema_version": 1,
+            "scanner": "contract-fixture",
+            "summary": "Contract validation fixture.",
+            "findings": [],
+            "metadata": {},
+        },
+    }
+    command = " ".join(shlex.quote(part) for part in args.command)
+    report = run_external_security_cmd(
+        command,
+        payload,
+        args.timeout,
+        fallback_report=scan_repository_path(Path("."), payload["threat_model"]),
+    )
+    serialized = report.to_dict()
+    errors = validate_scan_report_payload(serialized)
+    if args.output:
+        Path(args.output).write_text(json.dumps(serialized, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    if errors:
+        for error in errors:
+            print(f"ERROR: {error}")
+        return 2
+    print(f"Scanner contract valid. Max severity: {report.max_severity}. Findings: {len(report.findings)}")
+    return 0 if report.scanner != "builtin-release-audit" else 2
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="oss-sentinel", description="OSS Sentinel Bot")
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -70,6 +113,14 @@ def build_parser() -> argparse.ArgumentParser:
     simulate.add_argument("payload", help="JSON payload with a sentinel.files array.")
     simulate.add_argument("--write", action="store_true", help="Apply GitHub labels/comments instead of dry-run.")
     simulate.set_defaults(func=cmd_simulate_pr)
+
+    validate = subcommands.add_parser("validate-scanner", help="Validate an external scanner command contract.")
+    validate.add_argument("fixture", help="PR fixture JSON with a sentinel.files array.")
+    validate.add_argument("command", nargs=argparse.REMAINDER, help="Scanner command to execute.")
+    validate.add_argument("-m", "--threat-model", default="threat_model.json", help="Threat model JSON path.")
+    validate.add_argument("-o", "--output", help="Write scanner report JSON to this path.")
+    validate.add_argument("--timeout", type=int, default=30, help="Scanner timeout in seconds.")
+    validate.set_defaults(func=cmd_validate_scanner)
 
     return parser
 

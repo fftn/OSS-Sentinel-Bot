@@ -1,6 +1,7 @@
 from dataclasses import replace
 from pathlib import Path
 import json
+import sys
 import unittest
 
 from oss_sentinel.config import Settings
@@ -25,6 +26,16 @@ class IntegrationDecisionTests(unittest.TestCase):
 
     def test_external_scanner_failure_blocks_security_sensitive_pr(self) -> None:
         settings = replace(self._settings(), security_cmd="/definitely/missing/oss-sentinel-scanner")
+        result = handle_event("pull_request", self._payload("pr_auth_change.json"), settings)
+        self.assertEqual(result["status"], "processed")
+        self.assertEqual(result["action"], "block")
+        self.assertEqual(result["max_severity"], "HIGH")
+
+    def test_external_scanner_result_blocks_security_sensitive_pr(self) -> None:
+        settings = replace(
+            self._settings(),
+            security_cmd=f"{sys.executable} -m oss_sentinel.adapters.rule_based",
+        )
         result = handle_event("pull_request", self._payload("pr_auth_change.json"), settings)
         self.assertEqual(result["status"], "processed")
         self.assertEqual(result["action"], "block")
@@ -60,4 +71,3 @@ class IntegrationDecisionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

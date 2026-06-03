@@ -59,6 +59,8 @@ Set:
 
 ```bash
 export OSS_SENTINEL_SECURITY_CMD="your-scanner --format json"
+# or use the bundled local adapter:
+export OSS_SENTINEL_SECURITY_CMD="python3 -m oss_sentinel.adapters.rule_based"
 ```
 
 The command receives JSON on stdin:
@@ -87,6 +89,16 @@ It must print a ScanReport-compatible JSON document:
 
 The full prompt contract lives in `prompts/security_decision.md`.
 
+Validate a scanner command before using it in webhook mode:
+
+```bash
+python3 -m oss_sentinel.cli validate-scanner \
+  tests/fixtures/pr_auth_change.json \
+  python3 -m oss_sentinel.adapters.rule_based
+```
+
+`validate-scanner` sends a realistic scanner payload to the command and fails if the command cannot emit a valid `ScanReport`.
+
 ## Commands
 
 ```bash
@@ -107,6 +119,7 @@ The CI workflow runs the same checks:
 python3 -m unittest discover -s tests
 python3 -m compileall oss_sentinel scripts
 python3 -m oss_sentinel.cli audit-release . -o security_report.json
+python3 -m oss_sentinel.cli validate-scanner tests/fixtures/pr_auth_change.json python3 -m oss_sentinel.adapters.rule_based
 ```
 
 Integration fixtures in `tests/fixtures` cover clean PRs, dependency PRs, sensitive-file PRs, and external scanner failures.

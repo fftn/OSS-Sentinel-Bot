@@ -12,6 +12,8 @@ SEVERITY_RANK = {
     "CRITICAL": 4,
 }
 
+REQUIRED_FINDING_FIELDS = {"severity", "category", "path", "message", "recommendation"}
+
 
 def normalize_severity(value: str | None) -> str:
     severity = (value or "INFO").upper()
@@ -100,6 +102,43 @@ class ScanReport:
         )
 
 
+def validate_scan_report_payload(payload: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(payload, dict):
+        return ["report must be a JSON object"]
+    try:
+        schema_version = int(payload.get("schema_version", 0) or 0)
+    except (TypeError, ValueError):
+        schema_version = 0
+    if schema_version != 1:
+        errors.append("schema_version must be 1")
+    if not str(payload.get("scanner", "")).strip():
+        errors.append("scanner is required")
+    if not str(payload.get("summary", "")).strip():
+        errors.append("summary is required")
+    findings = payload.get("findings")
+    if not isinstance(findings, list):
+        errors.append("findings must be a list")
+        return errors
+    for index, item in enumerate(findings):
+        if not isinstance(item, dict):
+            errors.append(f"findings[{index}] must be an object")
+            continue
+        missing = sorted(REQUIRED_FINDING_FIELDS - set(item))
+        if missing:
+            errors.append(f"findings[{index}] missing required fields: {', '.join(missing)}")
+        severity = str(item.get("severity", "")).upper()
+        if severity not in SEVERITY_RANK:
+            errors.append(f"findings[{index}].severity must be one of {', '.join(SEVERITY_RANK)}")
+        line = item.get("line")
+        if line is not None and not isinstance(line, int):
+            errors.append(f"findings[{index}].line must be an integer when present")
+    metadata = payload.get("metadata", {})
+    if metadata is not None and not isinstance(metadata, dict):
+        errors.append("metadata must be an object when present")
+    return errors
+
+
 @dataclass
 class PullRequestFile:
     filename: str
@@ -129,4 +168,3 @@ class PullRequestFile:
             "deletions": self.deletions,
             "raw_url": self.raw_url,
         }
-

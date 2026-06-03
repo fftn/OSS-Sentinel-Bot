@@ -18,4 +18,5 @@ jobs:
         run: python3 -m compileall oss_sentinel scripts
       - name: Run release audit
         run: python3 -m oss_sentinel.cli audit-release . -o security_report.json
-
+      - name: Validate bundled scanner adapter
+        run: python3 -m oss_sentinel.cli validate-scanner tests/fixtures/pr_auth_change.json python3 -m oss_sentinel.adapters.rule_based
