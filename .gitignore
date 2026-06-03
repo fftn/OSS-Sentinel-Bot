@@ -11,4 +11,4 @@ venv/
 threat_model.json
 security_report.json
 RELEASE_NOTES.md
-
+audit_log.jsonl

@@ -34,6 +34,7 @@ class AuthTests(unittest.TestCase):
             dry_run=True,
             security_cmd=None,
             security_timeout=120,
+            audit_log_path=None,
             threat_model_path=Path("threat_model.json"),
             repo_config_path=None,
             host="127.0.0.1",
@@ -60,4 +61,3 @@ class AuthTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

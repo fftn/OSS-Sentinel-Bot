@@ -32,6 +32,7 @@ class Settings:
     dry_run: bool
     security_cmd: str | None
     security_timeout: int
+    audit_log_path: Path | None
     threat_model_path: Path
     repo_config_path: Path | None
     host: str
@@ -56,6 +57,7 @@ class Settings:
             dry_run=env_bool("OSS_SENTINEL_DRY_RUN", True),
             security_cmd=os.getenv("OSS_SENTINEL_SECURITY_CMD"),
             security_timeout=env_int("OSS_SENTINEL_SECURITY_TIMEOUT", 120),
+            audit_log_path=Path(raw) if (raw := os.getenv("OSS_SENTINEL_AUDIT_LOG")) else None,
             threat_model_path=Path(os.getenv("OSS_SENTINEL_THREAT_MODEL", "threat_model.json")),
             repo_config_path=Path(raw) if (raw := os.getenv("OSS_SENTINEL_CONFIG")) else None,
             host=os.getenv("OSS_SENTINEL_HOST", "127.0.0.1"),

@@ -7,6 +7,7 @@ import json
 import shlex
 import sys
 
+from .audit import read_audit_records
 from .config import Settings
 from .models import SEVERITY_RANK, validate_scan_report_payload
 from .repo_config import load_repository_config, merge_config_into_threat_model
@@ -88,6 +89,17 @@ def cmd_validate_scanner(args: argparse.Namespace) -> int:
     return 0 if report.scanner != "builtin-release-audit" else 2
 
 
+def cmd_audit_log(args: argparse.Namespace) -> int:
+    records = read_audit_records(
+        Path(args.path),
+        limit=args.limit,
+        repository=args.repository,
+        action=args.action,
+    )
+    print(json.dumps(records, indent=2, sort_keys=True))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="oss-sentinel", description="OSS Sentinel Bot")
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -121,6 +133,13 @@ def build_parser() -> argparse.ArgumentParser:
     validate.add_argument("-o", "--output", help="Write scanner report JSON to this path.")
     validate.add_argument("--timeout", type=int, default=30, help="Scanner timeout in seconds.")
     validate.set_defaults(func=cmd_validate_scanner)
+
+    audit_log = subcommands.add_parser("audit-log", help="Read OSS Sentinel JSONL audit records.")
+    audit_log.add_argument("path", nargs="?", default="audit_log.jsonl", help="Audit JSONL path.")
+    audit_log.add_argument("--limit", type=int, default=20, help="Maximum recent records to print.")
+    audit_log.add_argument("--repository", help="Only include records for owner/repo.")
+    audit_log.add_argument("--action", choices=["approve", "review", "block"], help="Only include one decision.")
+    audit_log.set_defaults(func=cmd_audit_log)
 
     return parser
 

@@ -1,5 +1,6 @@
 from dataclasses import replace
 from pathlib import Path
+from tempfile import TemporaryDirectory
 import json
 import sys
 import unittest
@@ -41,6 +42,17 @@ class IntegrationDecisionTests(unittest.TestCase):
         self.assertEqual(result["action"], "block")
         self.assertEqual(result["max_severity"], "HIGH")
 
+    def test_processed_pr_writes_audit_log_when_enabled(self) -> None:
+        with TemporaryDirectory() as tmp:
+            audit_path = Path(tmp) / "audit.jsonl"
+            settings = replace(self._settings(), audit_log_path=audit_path)
+            result = handle_event("pull_request", self._payload("pr_secret.json"), settings)
+            content = audit_path.read_text(encoding="utf-8")
+        self.assertEqual(result["action"], "block")
+        self.assertIn('"repository": "owner/repo"', content)
+        self.assertIn('"action": "block"', content)
+        self.assertNotIn("abc123abc123abc123", content)
+
     @staticmethod
     def _payload(name: str) -> dict[str, object]:
         return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
@@ -56,6 +68,7 @@ class IntegrationDecisionTests(unittest.TestCase):
             dry_run=True,
             security_cmd=None,
             security_timeout=120,
+            audit_log_path=None,
             threat_model_path=Path("threat_model.json"),
             repo_config_path=None,
             host="127.0.0.1",

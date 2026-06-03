@@ -17,6 +17,7 @@ This first version keeps the heavy scanner pluggable. If `OSS_SENTINEL_SECURITY_
   - `LOW` or `INFO`: label `security/approved`.
 - Release-tree audit command for pre-publish checks.
 - Repository-level `sentinel.yml` tuning for ignored paths, labels, severity thresholds, and critical path rules.
+- Optional JSONL audit log for processed PR decisions, with finding evidence omitted to avoid persisting secrets.
 - Dry-run mode by default.
 
 ## Quick start
@@ -106,6 +107,7 @@ python3 -m oss_sentinel.cli baseline . -o threat_model.json
 python3 -m oss_sentinel.cli serve
 python3 -m oss_sentinel.cli audit-release . -o security_report.json
 python3 -m oss_sentinel.cli simulate-pr tests/fixtures/pr_secret.json
+python3 -m oss_sentinel.cli audit-log audit_log.jsonl --limit 20
 ```
 
 `audit-release` exits with status `2` when a `HIGH` or `CRITICAL` finding is present. Use that in `npm publish`, PyPI, or other release pipelines.
@@ -123,6 +125,18 @@ python3 -m oss_sentinel.cli validate-scanner tests/fixtures/pr_auth_change.json 
 ```
 
 Integration fixtures in `tests/fixtures` cover clean PRs, dependency PRs, sensitive-file PRs, and external scanner failures.
+
+## Audit log
+
+Set `OSS_SENTINEL_AUDIT_LOG=audit_log.jsonl` to record processed PR decisions as JSONL:
+
+```bash
+OSS_SENTINEL_AUDIT_LOG=audit_log.jsonl \
+  python3 -m oss_sentinel.cli simulate-pr tests/fixtures/pr_secret.json
+python3 -m oss_sentinel.cli audit-log audit_log.jsonl --action block
+```
+
+Audit records include repository, PR number, actor, decision, scanner, max severity, and sanitized findings. Finding `evidence` is not written to the audit log.
 
 ## Repository config
 

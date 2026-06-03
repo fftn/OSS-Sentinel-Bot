@@ -7,6 +7,7 @@ import hmac
 import json
 
 from .auth import resolve_github_token
+from .audit import append_audit_record, build_audit_record
 from .config import Settings
 from .github import GitHubClient
 from .models import PullRequestFile
@@ -121,6 +122,7 @@ def handle_pull_request(payload: dict[str, Any], settings: Settings, client: Git
         review_at=repo_config.review_at,
     )
     comment_body = render_comment(report, decision)
+    audit_record = build_audit_record(context, decision, report, settings.dry_run)
     apply_decision(
         client,
         owner,
@@ -134,6 +136,7 @@ def handle_pull_request(payload: dict[str, Any], settings: Settings, client: Git
         decision.comment,
         settings.submit_reviews,
     )
+    append_audit_record(settings.audit_log_path, audit_record)
     return {
         "status": "processed",
         "action": decision.action,
