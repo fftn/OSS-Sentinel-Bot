@@ -99,6 +99,18 @@ python3 -m oss_sentinel.cli simulate-pr tests/fixtures/pr_secret.json
 `audit-release` exits with status `2` when a `HIGH` or `CRITICAL` finding is present. Use that in `npm publish`, PyPI, or other release pipelines.
 By default it skips tests, fixtures, and examples; add `--include-tests` when those files are part of the release artifact you want to audit.
 
+## Local verification
+
+The CI workflow runs the same checks:
+
+```bash
+python3 -m unittest discover -s tests
+python3 -m compileall oss_sentinel scripts
+python3 -m oss_sentinel.cli audit-release . -o security_report.json
+```
+
+Integration fixtures in `tests/fixtures` cover clean PRs, dependency PRs, sensitive-file PRs, and external scanner failures.
+
 ## Repository config
 
 `sentinel.yml` lets maintainers tune rules without changing bot code:

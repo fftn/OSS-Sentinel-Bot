@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run unit and integration tests
+        run: python3 -m unittest discover -s tests
+      - name: Compile Python modules
+        run: python3 -m compileall oss_sentinel scripts
+      - name: Run release audit
+        run: python3 -m oss_sentinel.cli audit-release . -o security_report.json
+

@@ -1,0 +1,33 @@
+{
+  "action": "opened",
+  "number": 8,
+  "repository": {
+    "full_name": "owner/repo"
+  },
+  "pull_request": {
+    "number": 8,
+    "title": "Update docs",
+    "draft": false,
+    "user": {
+      "login": "contributor"
+    },
+    "base": {
+      "ref": "main"
+    },
+    "head": {
+      "ref": "docs"
+    }
+  },
+  "sentinel": {
+    "files": [
+      {
+        "filename": "README.md",
+        "status": "modified",
+        "additions": 1,
+        "deletions": 0,
+        "patch": "@@ -1 +1 @@\n+Updated wording only."
+      }
+    ]
+  }
+}
+

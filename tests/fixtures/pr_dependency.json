@@ -1,0 +1,33 @@
+{
+  "action": "synchronize",
+  "number": 9,
+  "repository": {
+    "full_name": "owner/repo"
+  },
+  "pull_request": {
+    "number": 9,
+    "title": "Bump dependency",
+    "draft": false,
+    "user": {
+      "login": "dependabot[bot]"
+    },
+    "base": {
+      "ref": "main"
+    },
+    "head": {
+      "ref": "dependabot/npm/package"
+    }
+  },
+  "sentinel": {
+    "files": [
+      {
+        "filename": "package.json",
+        "status": "modified",
+        "additions": 1,
+        "deletions": 1,
+        "patch": "@@ -4,7 +4,7 @@\n-    \"example\": \"1.0.0\"\n+    \"example\": \"1.0.1\""
+      }
+    ]
+  }
+}
+

@@ -1,0 +1,33 @@
+{
+  "action": "opened",
+  "number": 10,
+  "repository": {
+    "full_name": "owner/repo"
+  },
+  "pull_request": {
+    "number": 10,
+    "title": "Change auth callback",
+    "draft": false,
+    "user": {
+      "login": "contributor"
+    },
+    "base": {
+      "ref": "main"
+    },
+    "head": {
+      "ref": "auth-callback"
+    }
+  },
+  "sentinel": {
+    "files": [
+      {
+        "filename": "src/auth/callback.py",
+        "status": "modified",
+        "additions": 1,
+        "deletions": 0,
+        "patch": "@@ -10,6 +10,7 @@\n+    return requests.get(next_url).text"
+      }
+    ]
+  }
+}
+
