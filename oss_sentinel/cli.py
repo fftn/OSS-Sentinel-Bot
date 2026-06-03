@@ -8,6 +8,7 @@ import sys
 
 from .config import Settings
 from .models import SEVERITY_RANK
+from .repo_config import load_repository_config, merge_config_into_threat_model
 from .scanner import scan_repository_path
 from .server import handle_event, run_server
 from .threat_model import generate_threat_model, load_threat_model, write_threat_model
@@ -23,7 +24,8 @@ def cmd_baseline(args: argparse.Namespace) -> int:
 
 def cmd_audit_release(args: argparse.Namespace) -> int:
     repo_path = Path(args.path)
-    threat_model = load_threat_model(Path(args.threat_model))
+    repo_config = load_repository_config(Path(args.config) if args.config else None)
+    threat_model = merge_config_into_threat_model(load_threat_model(Path(args.threat_model)), repo_config)
     report = scan_repository_path(repo_path, threat_model, include_tests=args.include_tests)
     output = Path(args.output)
     output.write_text(json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -59,6 +61,7 @@ def build_parser() -> argparse.ArgumentParser:
     audit = subcommands.add_parser("audit-release", help="Scan a release tree before publishing.")
     audit.add_argument("path", nargs="?", default=".", help="Repository path to audit.")
     audit.add_argument("-m", "--threat-model", default="threat_model.json", help="Threat model JSON path.")
+    audit.add_argument("-c", "--config", help="Repository sentinel config path.")
     audit.add_argument("-o", "--output", default="security_report.json", help="Output report JSON path.")
     audit.add_argument("--include-tests", action="store_true", help="Also scan tests, fixtures, and examples.")
     audit.set_defaults(func=cmd_audit_release)

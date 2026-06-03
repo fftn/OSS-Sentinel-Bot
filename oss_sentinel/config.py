@@ -30,6 +30,7 @@ class Settings:
     security_cmd: str | None
     security_timeout: int
     threat_model_path: Path
+    repo_config_path: Path | None
     host: str
     port: int
     approve_label: str
@@ -48,6 +49,7 @@ class Settings:
             security_cmd=os.getenv("OSS_SENTINEL_SECURITY_CMD"),
             security_timeout=env_int("OSS_SENTINEL_SECURITY_TIMEOUT", 120),
             threat_model_path=Path(os.getenv("OSS_SENTINEL_THREAT_MODEL", "threat_model.json")),
+            repo_config_path=Path(raw) if (raw := os.getenv("OSS_SENTINEL_CONFIG")) else None,
             host=os.getenv("OSS_SENTINEL_HOST", "127.0.0.1"),
             port=env_int("OSS_SENTINEL_PORT", 8080),
             approve_label=os.getenv("OSS_SENTINEL_APPROVE_LABEL", "security/approved"),
@@ -57,4 +59,3 @@ class Settings:
             comment_on_approval=env_bool("OSS_SENTINEL_COMMENT_ON_APPROVAL", False),
             github_api_url=os.getenv("GITHUB_API_URL", "https://api.github.com"),
         )
-

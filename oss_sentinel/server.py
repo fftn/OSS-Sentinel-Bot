@@ -10,6 +10,7 @@ from .config import Settings
 from .github import GitHubClient
 from .models import PullRequestFile
 from .policy import decide, render_comment
+from .repo_config import load_repository_config, merge_config_into_threat_model
 from .scanner import run_security_analysis
 from .threat_model import load_threat_model
 
@@ -52,24 +53,21 @@ def apply_decision(
     owner: str,
     repo: str,
     pull_number: int,
-    settings: Settings,
+    labels: tuple[str, str, str],
     report_body: str,
     action: str,
     label: str,
     request_changes: bool,
     comment: bool,
+    submit_reviews: bool,
 ) -> None:
-    stale_labels = {
-        settings.approve_label,
-        settings.block_label,
-        settings.review_label,
-    } - {label}
+    stale_labels = set(labels) - {label}
     for stale_label in stale_labels:
         client.remove_label(owner, repo, pull_number, stale_label)
     client.add_labels(owner, repo, pull_number, [label])
     if comment:
         client.create_comment(owner, repo, pull_number, report_body)
-    if request_changes and settings.submit_reviews:
+    if request_changes and submit_reviews:
         client.submit_pull_review(owner, repo, pull_number, report_body, "REQUEST_CHANGES")
 
 
@@ -84,7 +82,11 @@ def handle_pull_request(payload: dict[str, Any], settings: Settings, client: Git
     owner, repo = _repo_parts(payload)
     pull_number = int(payload.get("number") or pull_request.get("number"))
     files = _files_from_payload_or_github(payload, client, owner, repo, pull_number)
-    threat_model = load_threat_model(settings.threat_model_path)
+    repo_config = load_repository_config(settings.repo_config_path)
+    threat_model = merge_config_into_threat_model(load_threat_model(settings.threat_model_path), repo_config)
+    approve_label = repo_config.approve_label or settings.approve_label
+    block_label = repo_config.block_label or settings.block_label
+    review_label = repo_config.review_label or settings.review_label
     actor = pull_request.get("user", {}).get("login")
     context = {
         "event": "pull_request",
@@ -106,10 +108,16 @@ def handle_pull_request(payload: dict[str, Any], settings: Settings, client: Git
     )
     decision = decide(
         report,
-        approve_label=settings.approve_label,
-        block_label=settings.block_label,
-        review_label=settings.review_label,
-        comment_on_approval=settings.comment_on_approval,
+        approve_label=approve_label,
+        block_label=block_label,
+        review_label=review_label,
+        comment_on_approval=(
+            repo_config.comment_on_approval
+            if repo_config.comment_on_approval is not None
+            else settings.comment_on_approval
+        ),
+        block_at=repo_config.block_at,
+        review_at=repo_config.review_at,
     )
     comment_body = render_comment(report, decision)
     apply_decision(
@@ -117,12 +125,13 @@ def handle_pull_request(payload: dict[str, Any], settings: Settings, client: Git
         owner,
         repo,
         pull_number,
-        settings,
+        (approve_label, block_label, review_label),
         comment_body,
         decision.action,
         decision.label,
         decision.request_changes,
         decision.comment,
+        settings.submit_reviews,
     )
     return {
         "status": "processed",

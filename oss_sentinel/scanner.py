@@ -221,9 +221,12 @@ def scan_changed_files(files: list[PullRequestFile], threat_model: dict[str, Any
     findings: list[Finding] = []
     sensitive_paths = list(threat_model.get("sensitive_paths", []))
     critical_patterns = list(threat_model.get("security_critical_patterns", []))
+    ignored_paths = list(threat_model.get("ignored_paths", []))
 
     for item in files:
         path = item.filename
+        if matches_any(path, ignored_paths):
+            continue
         if not is_sensitive_filename_exempt(path) and (
             is_sensitive_filename(path) or matches_any(path, sensitive_paths)
         ):
@@ -369,15 +372,21 @@ def scan_repository_path(
     repo_path = repo_path.resolve()
     findings: list[Finding] = []
     skip_dirs = SKIP_DIRS if include_tests else RELEASE_SKIP_DIRS
+    ignored_paths = [
+        *list(threat_model.get("ignored_paths", [])),
+        *list(threat_model.get("release_ignored_paths", [])),
+    ]
     for path in repo_path.rglob("*"):
         rel = path.relative_to(repo_path)
         if any(part in skip_dirs for part in rel.parts) or not path.is_file():
             continue
         if rel.name in RELEASE_SKIP_FILES:
             continue
+        rel_text = rel.as_posix()
+        if matches_any(rel_text, ignored_paths):
+            continue
         if path.stat().st_size > TEXT_FILE_LIMIT_BYTES:
             continue
-        rel_text = rel.as_posix()
         if is_sensitive_filename(rel_text):
             findings.append(
                 Finding(

@@ -1,0 +1,30 @@
+version: 1
+
+# Repository-specific tuning for OSS Sentinel Bot.
+# Patterns use shell-style globs against repository-relative paths.
+ignore_paths:
+  - "docs/generated/**"
+
+sensitive_paths:
+  - "config/production/**"
+
+security_critical_patterns:
+  - glob: "oss_sentinel/auth.py"
+    reason: "GitHub authentication code changed"
+  - glob: ".github/workflows/**"
+    reason: "CI workflow changed"
+
+policy:
+  block_at: HIGH
+  review_at: MEDIUM
+  comment_on_approval: false
+
+labels:
+  approve: "security/approved"
+  review: "security/review"
+  block: "security/blocked"
+
+release:
+  ignore_paths:
+    - "docs/**"
+

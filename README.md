@@ -16,6 +16,7 @@ This first version keeps the heavy scanner pluggable. If `OSS_SENTINEL_SECURITY_
   - `MEDIUM`: label `security/review`, comment.
   - `LOW` or `INFO`: label `security/approved`.
 - Release-tree audit command for pre-publish checks.
+- Repository-level `sentinel.yml` tuning for ignored paths, labels, severity thresholds, and critical path rules.
 - Dry-run mode by default.
 
 ## Quick start
@@ -87,6 +88,30 @@ python3 -m oss_sentinel.cli simulate-pr tests/fixtures/pr_secret.json
 
 `audit-release` exits with status `2` when a `HIGH` or `CRITICAL` finding is present. Use that in `npm publish`, PyPI, or other release pipelines.
 By default it skips tests, fixtures, and examples; add `--include-tests` when those files are part of the release artifact you want to audit.
+
+## Repository config
+
+`sentinel.yml` lets maintainers tune rules without changing bot code:
+
+```yaml
+ignore_paths:
+  - "docs/generated/**"
+sensitive_paths:
+  - "config/production/**"
+security_critical_patterns:
+  - glob: "src/auth/**"
+    reason: "Authentication code changed"
+policy:
+  block_at: HIGH
+  review_at: MEDIUM
+labels:
+  approve: "security/approved"
+  review: "security/review"
+  block: "security/blocked"
+release:
+  ignore_paths:
+    - "docs/**"
+```
 
 ## GitHub permissions
 
